@@ -5,31 +5,121 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Deepavali AR Wish ✨</title>
   <style>
-    html, body { margin: 0; height: 100%; overflow: hidden; background: #000; font-family: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif; }
+    html, body {
+      margin: 0;
+      height: 100%;
+      overflow: hidden;
+      background: #000;
+      font-family: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
+    }
     #app { position: relative; height: 100vh; }
 
     /* Camera feed */
-    #camera { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; background: #000; transform: scaleX(1); }
+    #camera {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      background: #000;
+      transform: scaleX(1);
+    }
 
     /* WebGL overlay */
-    #overlay { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
+    #overlay {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+    }
 
     /* Welcome screen */
-    #gate { position: absolute; inset: 0; display: grid; place-items: center; z-index: 5; background: radial-gradient(80vmax 80vmax at 50% 40%, #1a0033 0%, #000 70%); color: #fff; text-align: center; padding: 24px; }
-    .panel { width: min(640px, 92vw); padding: 22px; border-radius: 16px; background: rgba(255,255,255,.06); backdrop-filter: blur(8px); box-shadow: 0 10px 40px rgba(0,0,0,.4), inset 0 0 0 1px rgba(255,255,255,.1); }
+    #gate {
+      position: absolute;
+      inset: 0;
+      display: grid;
+      place-items: center;
+      z-index: 5;
+      background: radial-gradient(80vmax 80vmax at 50% 40%, #1a0033 0%, #000 70%);
+      color: #fff;
+      text-align: center;
+      padding: 24px;
+    }
+    .panel {
+      width: min(640px, 92vw);
+      padding: 22px;
+      border-radius: 16px;
+      background: rgba(255,255,255,.06);
+      backdrop-filter: blur(8px);
+      box-shadow: 0 10px 40px rgba(0,0,0,.4), inset 0 0 0 1px rgba(255,255,255,.1);
+    }
     .panel h2 { margin: 0 0 8px; font-size: clamp(22px, 4vw, 32px); }
     .panel p { margin: 0 0 14px; opacity: .9; }
-    input { width: 100%; padding: 12px 14px; border-radius: 12px; border: 0; font-size: 1rem; outline: none; background: rgba(255,255,255,.92); color: #1b1b1b; }
-    button.primary { width: 100%; padding: 13px 18px; border: 0; border-radius: 12px; cursor: pointer; font-weight: 700; background: linear-gradient(90deg,#ffb703,#fb5607); color: #2b0c05; box-shadow: 0 8px 22px rgba(251,86,7,.35); }
+    input {
+      width: 100%;
+      padding: 12px 14px;
+      border-radius: 12px;
+      border: 0;
+      font-size: 1rem;
+      outline: none;
+      background: rgba(255,255,255,.92);
+      color: #1b1b1b;
+    }
+    button.primary {
+      width: 100%;
+      padding: 13px 18px;
+      border: 0;
+      border-radius: 12px;
+      cursor: pointer;
+      font-weight: 700;
+      background: linear-gradient(90deg,#ffb703,#fb5607);
+      color: #2b0c05;
+      box-shadow: 0 8px 22px rgba(251,86,7,.35);
+    }
     .hint { font-size: 12px; opacity: .85; margin-top: 8px; }
 
     /* Controls */
-    .controls { position: absolute; right: 12px; bottom: 12px; z-index: 7; display: flex; gap: 8px; align-items: center; }
-    .ctrl { display: inline-flex; align-items: center; gap: 6px; padding: 10px 12px; border-radius: 999px; border: 0; cursor: pointer; font-weight: 600; background: rgba(255,255,255,.1); color: #fff; backdrop-filter: blur(8px); box-shadow: 0 4px 18px rgba(0,0,0,.35), inset 0 0 0 1px rgba(255,255,255,.15); }
+    .controls {
+      position: absolute;
+      right: 12px;
+      bottom: 12px;
+      z-index: 7;
+      display: flex;
+      gap: 8px;
+      align-items: center;
+    }
+    .ctrl {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 10px 12px;
+      border-radius: 999px;
+      border: 0;
+      cursor: pointer;
+      font-weight: 600;
+      background: rgba(255,255,255,.1);
+      color: #fff;
+      backdrop-filter: blur(8px);
+      box-shadow: 0 4px 18px rgba(0,0,0,.35), inset 0 0 0 1px rgba(255,255,255,.15);
+    }
     .ctrl[disabled] { opacity: .5; cursor: not-allowed; }
 
     /* Toast */
-    .toast { position: absolute; left: 50%; transform: translateX(-50%); bottom: 78px; background: rgba(0,0,0,.7); color:#fff; padding: 8px 12px; border-radius: 10px; font-size: 13px; opacity: 0; transition: opacity .25s ease; z-index: 8; }
+    .toast {
+      position: absolute;
+      left: 50%;
+      transform: translateX(-50%);
+      bottom: 78px;
+      background: rgba(0,0,0,.7);
+      color:#fff;
+      padding: 8px 12px;
+      border-radius: 10px;
+      font-size: 13px;
+      opacity: 0;
+      transition: opacity .25s ease;
+      z-index: 8;
+    }
     .toast.show { opacity: 1; }
   </style>
 </head>
@@ -58,9 +148,9 @@
 
     <div id="toast" class="toast" role="status"></div>
 
-    <!-- 🎵 Updated: Plays your uploaded song -->
+    <!-- 🎵 Plays your uploaded Deepavali song -->
     <audio id="bgm" loop preload="auto">
-      <source id="bgmSource" src="Mangalam%20Oli%20Veesum%20Deepavali__Video%20Song__Vdj%20Yuva__Deepavali%20Special.mp3" type="audio/mpeg">
+      <source id="bgmSource" src="Mangalam Oli Veesum Deepavali__Video Song__Vdj Yuva__Deepavali Special.mp3" type="audio/mpeg">
     </audio>
   </div>
 
@@ -75,7 +165,7 @@
   const vol = document.getElementById('volume');
   const toast = document.getElementById('toast');
   const canvas = document.getElementById('overlay');
-  let renderer, scene, cam3D, plane, glow, particles, t = 0;
+  let renderer, scene, cam3D, plane, particles, t = 0;
 
   function showToast(text, ms=1800){
     toast.textContent=text;
@@ -95,7 +185,7 @@
   async function startCamera(){
     const stream = await navigator.mediaDevices.getUserMedia({video:{facingMode:'environment'}});
     video.srcObject = stream;
-    video.style.transform = 'scaleX(1)';
+    video.style.transform = 'scaleX(1)'; // no mirror
   }
 
   function requestLocation(){
@@ -135,43 +225,67 @@
     const tex = makeWishTexture(name);
     const geo = new THREE.PlaneGeometry(1.9,0.8);
     const mat = new THREE.MeshBasicMaterial({map:tex,transparent:true});
-    plane = new THREE.Mesh(geo,mat); plane.position.z = -1.2; scene.add(plane);
+    plane = new THREE.Mesh(geo,mat);
+    plane.position.z = -1.2;
+    scene.add(plane);
 
-    const ringGeo = new THREE.RingGeometry(0.8,1.15,64);
-    const ringMat = new THREE.MeshBasicMaterial({color:0xffc107,transparent:true,opacity:0.32,side:THREE.DoubleSide});
-    glow = new THREE.Mesh(ringGeo,ringMat); glow.position.z=-1.3; scene.add(glow);
-
-    const pGeo=new THREE.BufferGeometry(); const N=140; const pPos=new Float32Array(N*3);
-    for(let i=0;i<N;i++){pPos[i*3]=(Math.random()-0.5)*3;pPos[i*3+1]=Math.random()*2-1;pPos[i*3+2]=-Math.random()*2;}
+    // Floating particles
+    const pGeo = new THREE.BufferGeometry();
+    const N = 140;
+    const pPos = new Float32Array(N*3);
+    for(let i=0;i<N;i++){
+      pPos[i*3]=(Math.random()-0.5)*3;
+      pPos[i*3+1]=Math.random()*2-1;
+      pPos[i*3+2]=-Math.random()*2;
+    }
     pGeo.setAttribute('position',new THREE.BufferAttribute(pPos,3));
-    particles=new THREE.Points(pGeo,new THREE.PointsMaterial({color:0xffe066,size:0.02,transparent:true,opacity:0.85}));
+    particles = new THREE.Points(pGeo,new THREE.PointsMaterial({color:0xffe066,size:0.02,transparent:true,opacity:0.85}));
     scene.add(particles);
 
     animate(); window.addEventListener('resize',resize);
   }
 
   function makeWishTexture(name){
-    const c=document.createElement('canvas'); c.width=1024;c.height=512;
-    const ctx=c.getContext('2d');
-    const grad=ctx.createLinearGradient(0,0,1024,512);
-    grad.addColorStop(0,'#ffefba'); grad.addColorStop(1,'#ffc371');
-    ctx.fillStyle=grad; ctx.fillRect(0,0,1024,512);
-    ctx.textAlign='center'; ctx.fillStyle='#3a0d0d';
-    ctx.font='bold 70px Segoe UI'; ctx.fillText('Happy Deepavali to '+name,512,180);
-    ctx.font='30px Segoe UI';
-    ctx.fillText('May the light of Diwali fill your home with joy and prosperity.',512,250);
-    ctx.fillText('Wishing you and your loved ones a bright and blessed Deepavali.✨',512,310);
+    const c = document.createElement('canvas');
+    c.width = 1400; c.height = 900;
+    const ctx = c.getContext('2d');
+
+    const grad = ctx.createLinearGradient(0, 0, 1400, 900);
+    grad.addColorStop(0, '#fffaf2');
+    grad.addColorStop(1, '#ffe7b0');
+    ctx.fillStyle = grad;
+    ctx.fillRect(0, 0, 1400, 900);
+
+    const img = new Image();
+    img.src = "diya_bg.jfif"; // 🔥 use your uploaded diya image
+    img.onload = () => {
+      ctx.drawImage(img, 400, 400, 600, 450);
+      ctx.textAlign = 'center';
+      ctx.fillStyle = '#3a0d0d';
+      ctx.font = 'bold 70px Segoe UI';
+      ctx.fillText('Happy Deepavali to ' + name, 700, 200);
+      ctx.font = '32px Segoe UI';
+      ctx.fillText('May the light of Diwali fill your home with joy and prosperity.', 700, 270);
+      ctx.fillText('Wishing you and your loved ones a bright and blessed Deepavali.✨', 700, 320);
+    };
+
     return new THREE.CanvasTexture(c);
   }
 
   function animate(){
     requestAnimationFrame(animate);
     t+=0.01;
-    if(plane){plane.rotation.y=Math.sin(t)*0.5; plane.position.y=Math.sin(t*1.5)*0.05;}
-    if(glow)glow.rotation.z+=0.002;
+    if(plane){
+      plane.rotation.y=Math.sin(t)*0.5;
+      plane.position.y=Math.sin(t*1.5)*0.05;
+    }
     if(particles){
       const p=particles.geometry.attributes.position;
-      for(let i=0;i<p.count;i++){let y=p.getY(i)+0.002;if(y>1.2)y=-1.2;p.setY(i,y);}
+      for(let i=0;i<p.count;i++){
+        let y=p.getY(i)+0.002;
+        if(y>1.2)y=-1.2;
+        p.setY(i,y);
+      }
       p.needsUpdate=true;
     }
     renderer.render(scene,cam3D);
