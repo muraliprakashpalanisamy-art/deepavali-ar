@@ -8,13 +8,13 @@
     html, body { margin: 0; height: 100%; overflow: hidden; background: #000; font-family: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif; }
     #app { position: relative; height: 100vh; }
 
-    /* Camera feed (mirrored only when front camera is active) */
+    /* Camera feed */
     #camera { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; background: #000; transform: scaleX(1); }
 
     /* WebGL overlay */
     #overlay { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
 
-    /* Gate (Step 1: name only) */
+    /* Welcome screen */
     #gate { position: absolute; inset: 0; display: grid; place-items: center; z-index: 5; background: radial-gradient(80vmax 80vmax at 50% 40%, #1a0033 0%, #000 70%); color: #fff; text-align: center; padding: 24px; }
     .panel { width: min(640px, 92vw); padding: 22px; border-radius: 16px; background: rgba(255,255,255,.06); backdrop-filter: blur(8px); box-shadow: 0 10px 40px rgba(0,0,0,.4), inset 0 0 0 1px rgba(255,255,255,.1); }
     .panel h2 { margin: 0 0 8px; font-size: clamp(22px, 4vw, 32px); }
@@ -23,25 +23,10 @@
     button.primary { width: 100%; padding: 13px 18px; border: 0; border-radius: 12px; cursor: pointer; font-weight: 700; background: linear-gradient(90deg,#ffb703,#fb5607); color: #2b0c05; box-shadow: 0 8px 22px rgba(251,86,7,.35); }
     .hint { font-size: 12px; opacity: .85; margin-top: 8px; }
 
-    /* Step 2: Permissions screen */
-    #perm { position: absolute; inset: 0; display: none; place-items: center; z-index: 6; background: linear-gradient(180deg, rgba(0,0,0,.6), rgba(0,0,0,.9)); color: #fff; padding: 24px; }
-    .row { display: grid; gap: 10px; grid-template-columns: 1fr; }
-    .perm-grid { display: grid; gap: 10px; grid-template-columns: 1fr; }
-    @media (min-width: 580px){ .perm-grid { grid-template-columns: 1fr 1fr; } }
-    .chip { display:inline-flex; align-items:center; gap:8px; padding:8px 12px; border-radius:999px; background: rgba(255,255,255,.1); border: 1px solid rgba(255,255,255,.15); }
-
-    /* Floating controls */
+    /* Controls */
     .controls { position: absolute; right: 12px; bottom: 12px; z-index: 7; display: flex; gap: 8px; align-items: center; }
     .ctrl { display: inline-flex; align-items: center; gap: 6px; padding: 10px 12px; border-radius: 999px; border: 0; cursor: pointer; font-weight: 600; background: rgba(255,255,255,.1); color: #fff; backdrop-filter: blur(8px); box-shadow: 0 4px 18px rgba(0,0,0,.35), inset 0 0 0 1px rgba(255,255,255,.15); }
     .ctrl[disabled] { opacity: .5; cursor: not-allowed; }
-    input[type="range"]{ -webkit-appearance: none; width: 120px; height: 6px; border-radius: 6px; background: rgba(255,255,255,.25); outline: none; }
-    input[type="range"]::-webkit-slider-thumb{ -webkit-appearance: none; width: 16px; height: 16px; border-radius: 50%; background: #ffd166; box-shadow: 0 0 0 2px rgba(0,0,0,.35); }
-
-    /* Tiny live EQ */
-    .eq { display: inline-flex; gap: 3px; align-items: flex-end; height: 12px; margin-left: 4px; }
-    .bar { width: 3px; height: 6px; background: currentColor; opacity: .9; border-radius: 2px; animation: bounce 1s ease-in-out infinite; }
-    .bar:nth-child(2){ animation-delay: .1s } .bar:nth-child(3){ animation-delay: .2s }
-    @keyframes bounce { 0%,100%{height:6px} 50%{height:12px} }
 
     /* Toast */
     .toast { position: absolute; left: 50%; transform: translateX(-50%); bottom: 78px; background: rgba(0,0,0,.7); color:#fff; padding: 8px 12px; border-radius: 10px; font-size: 13px; opacity: 0; transition: opacity .25s ease; z-index: 8; }
@@ -53,277 +38,150 @@
     <video id="camera" autoplay playsinline muted></video>
     <canvas id="overlay"></canvas>
 
-    <!-- Step 1: Name only -->
+    <!-- Name entry -->
     <div id="gate">
-      <div class="panel" role="dialog" aria-labelledby="title">
-        <h2 id="title">🪔 Happy Deepavali 🪔</h2>
-        <p>Enter your name and tap Start. Next, we'll ask for <b>camera</b> and <b>location</b> permissions.</p>
+      <div class="panel">
+        <h2>🪔 Happy Deepavali 🪔</h2>
+        <p>Enter your name and tap Start to see your AR greeting.</p>
         <input id="userName" placeholder="Your name (e.g., Priya)" />
-        <button id="start" class="primary" style="margin-top:10px">Start ✨</button>
-        <div class="hint">Tip: Use HTTPS (or localhost) so the browser allows camera & location.</div>
+        <button id="start" class="primary">Start ✨</button>
+        <div class="hint">Ensure you allow camera & location for full experience.</div>
       </div>
     </div>
 
-    <!-- Step 2: Permission request helper (explains why + lets user retry) -->
-    <div id="perm">
-      <div class="panel" role="dialog" aria-labelledby="permTitle">
-        <h2 id="permTitle">Allow permissions</h2>
-        <div class="perm-grid">
-          <div>
-            <div class="chip">📷 Camera <small>(to show AR greeting)</small></div>
-            <div class="chip" style="margin-top:6px">📍 Location <small>(optional, for a localized touch)</small></div>
-          </div>
-          <div>
-            <button id="allowAll" class="primary">Allow Camera & Location</button>
-            <button id="allowCamera" class="primary" style="margin-top:8px; background:linear-gradient(90deg,#a8dadc,#457b9d); color:#0b0b0b">Allow Camera Only</button>
-          </div>
-        </div>
-        <p class="hint">If you denied before: Site settings → Allow Camera/Location → Reload.</p>
-      </div>
-    </div>
-
-    <!-- Floating music & utility controls -->
-    <div class="controls" aria-live="polite">
-      <button id="playPause" class="ctrl" aria-pressed="false" disabled>▶ Play<span class="eq" id="eq" aria-hidden="true" style="display:none"><i class="bar"></i><i class="bar"></i><i class="bar"></i></span></button>
+    <!-- Floating controls -->
+    <div class="controls">
+      <button id="playPause" class="ctrl" aria-pressed="false" disabled>▶ Play</button>
       <button id="mute" class="ctrl" aria-pressed="false" disabled>🔈</button>
       <input id="volume" type="range" min="0" max="1" step="0.01" value="0.5" aria-label="Volume" disabled />
-      <button id="flipCam" class="ctrl" title="Flip camera">🔁</button>
     </div>
 
     <div id="toast" class="toast" role="status"></div>
 
-    <audio id="bgm" loop preload="auto" crossorigin="anonymous">
-      <source id="bgmSource" src="https://cdn.pixabay.com/audio/2023/10/22/audio_ee4f78ef3f.mp3" type="audio/mpeg">
+    <!-- 🎵 Updated: Plays your uploaded song -->
+    <audio id="bgm" loop preload="auto">
+      <source id="bgmSource" src="Mangalam%20Oli%20Veesum%20Deepavali__Video%20Song__Vdj%20Yuva__Deepavali%20Special.mp3" type="audio/mpeg">
     </audio>
-
-    <!-- Explicit audio unlock overlay (shown if autoplay is blocked) -->
-    <button id="audioGate" style="display:none;position:absolute;inset:0;margin:auto; height:56px; max-width:320px; padding:12px 18px; border:0; border-radius:999px; z-index:9; background:linear-gradient(90deg,#ffd166,#e76f51); color:#2b0c05; font-weight:800; box-shadow:0 10px 30px rgba(0,0,0,.35);">
-      ▶ Tap to play music
-    </button>
   </div>
 
   <script src="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js"></script>
   <script>
-  // ------- Elements -------
   const video = document.getElementById('camera');
-  const gate = document.getElementById('gate');
-  const perm = document.getElementById('perm');
   const startBtn = document.getElementById('start');
-  const allowAll = document.getElementById('allowAll');
-  const allowCamera = document.getElementById('allowCamera');
-  const canvas = document.getElementById('overlay');
+  const gate = document.getElementById('gate');
   const bgm = document.getElementById('bgm');
-  const bgmSource = document.getElementById('bgmSource');
   const playPause = document.getElementById('playPause');
-  const eq = document.getElementById('eq');
   const muteBtn = document.getElementById('mute');
   const vol = document.getElementById('volume');
-  const flipCam = document.getElementById('flipCam');
   const toast = document.getElementById('toast');
-  const nameInput = document.getElementById('userName');
+  const canvas = document.getElementById('overlay');
+  let renderer, scene, cam3D, plane, glow, particles, t = 0;
 
-  // ------- State -------
-  let renderer, scene, camera3D, plane, glow, particles; let rotY = 0;
-  let currentStream = null; let currentFacing = 'environment';
-  let cachedName = 'Friend';
-
-  // ------- Diagnostics ("test cases") -------
-  function diag(label, pass){ console[(pass?'log':'warn')](`${pass?'✅':'❌'} ${label}`); }
-  function runDiagnostics(){
-    const secure = (location.protocol === 'https:' || location.hostname === 'localhost');
-    const media = !!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia);
-    const geo = !!navigator.geolocation;
-    const three = !!window.THREE;
-    const canMP3 = !!document.createElement('audio').canPlayType('audio/mpeg');
-    diag('Secure context (HTTPS/localhost)', secure);
-    diag('MediaDevices available', media);
-    diag('Geolocation available', geo);
-    diag('THREE loaded', three);
-    diag('Audio MP3 support', canMP3);
+  function showToast(text, ms=1800){
+    toast.textContent=text;
+    toast.classList.add('show');
+    setTimeout(()=>toast.classList.remove('show'),ms);
   }
-  runDiagnostics();
 
-  // ------- UX helpers -------
-  function showToast(text, ms=1800){ toast.textContent = text; toast.classList.add('show'); setTimeout(()=>toast.classList.remove('show'), ms); }
-  function isSecure(){ return location.protocol === 'https:' || location.hostname === 'localhost'; }
-
-  // ------- Step 1 -> Step 2 -------
-  startBtn.onclick = () => {
-    cachedName = (nameInput.value || 'Friend').trim();
-    if (!isSecure()) { showToast('Open over HTTPS or localhost to use camera/location'); return; }
-    gate.style.display = 'none'; perm.style.display = 'grid';
+  startBtn.onclick = async () => {
+    const name = document.getElementById('userName').value.trim() || "Friend";
+    gate.style.display = 'none';
+    await startCamera();
+    requestLocation();
+    setupAR(name);
+    setupMusic();
   };
 
-  // ------- Permissions & media -------
-  allowAll.onclick = async () => { await requestPermissions({ camera:true, location:true }); };
-  allowCamera.onclick = async () => { await requestPermissions({ camera:true, location:false }); };
-
-  async function requestPermissions({ camera, location }){
-    try {
-      if (camera) await startCamera(currentFacing);
-      if (location) requestLocation();
-      perm.style.display = 'none';
-      startExperience();
-    } catch (e) {
-      handlePermissionError(e);
-      // Keep permission panel open for retry
-    }
+  async function startCamera(){
+    const stream = await navigator.mediaDevices.getUserMedia({video:{facingMode:'environment'}});
+    video.srcObject = stream;
+    video.style.transform = 'scaleX(1)';
   }
 
-  async function startCamera(facing) {
-    if (!('mediaDevices' in navigator)) throw new Error('MediaDevices not supported');
-    if (currentStream) { currentStream.getTracks().forEach(t => t.stop()); }
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: facing } });
-      currentStream = stream; video.srcObject = stream;
-      video.style.transform = (facing === 'user') ? 'scaleX(-1)' : 'scaleX(1)';
-    } catch (err) { throw err; }
-  }
-
-  function requestLocation() {
-    if (!('geolocation' in navigator)) { console.log('Geolocation not supported'); return; }
+  function requestLocation(){
+    if(!navigator.geolocation)return;
     navigator.geolocation.getCurrentPosition(
-      (pos) => { console.log('Location:', pos.coords.latitude, pos.coords.longitude); },
-      (err) => { console.log('Location error:', err.message); if (err.code === 1) showToast('Location denied'); },
-      { enableHighAccuracy: false, maximumAge: 30_000, timeout: 7_000 }
+      pos=>console.log('Location:',pos.coords.latitude,pos.coords.longitude),
+      err=>console.warn('Location denied:',err.message)
     );
   }
 
-  // ------- Music -------
-  let audioCtx, mediaElSource;
-  async function unlockAudio(){
-    try {
-      const Ctx = window.AudioContext || window.webkitAudioContext; if (!Ctx) return;
-      if (!audioCtx) { audioCtx = new Ctx(); }
-      if (audioCtx.state === 'suspended') { await audioCtx.resume(); }
-      if (!mediaElSource) { mediaElSource = audioCtx.createMediaElementSource(bgm); mediaElSource.connect(audioCtx.destination); }
-    } catch (e) { console.warn('Audio unlock failed', e); }
-  }
-
-  const audioGate = document.getElementById('audioGate');
-
-  async function safePlayMusic() {
+  function setupMusic(){
     bgm.volume = vol.valueAsNumber;
-    try {
-      await unlockAudio();
-      await bgm.play();
-      playPause.disabled = false; muteBtn.disabled = false; vol.disabled = false; setPlaying(true);
-      audioGate.style.display = 'none';
-    } catch (e) {
-      console.warn('Autoplay blocked:', e && (e.name||e.message));
-      playPause.disabled = false; muteBtn.disabled = false; vol.disabled = false; setPlaying(false);
-      // Show explicit overlay button for iOS/Safari
-      audioGate.style.display = 'block';
-    }
-  }
-  function setPlaying(is){ playPause.setAttribute('aria-pressed', String(is)); playPause.textContent = is ? '⏸ Pause' : '▶ Play'; if (is) { playPause.appendChild(eq); eq.style.display = 'inline-flex'; } else { eq.style.display = 'none'; } }
-  function enableControls(){ playPause.disabled = false; muteBtn.disabled = false; vol.disabled = false; }
-  function fadeTo(target, duration=400){ const start = bgm.volume; const delta = target - start; const t0 = performance.now(); function step(t){ const k = Math.min(1, (t - t0) / duration); bgm.volume = Math.max(0, Math.min(1, start + delta * k)); if (k < 1) requestAnimationFrame(step); } requestAnimationFrame(step); }
-  playPause.addEventListener('click', async () => { if (bgm.paused) { try { await unlockAudio(); await bgm.play(); setPlaying(true); audioGate.style.display = 'none'; } catch(e){ showToast('Tap again to allow audio'); } } else { fadeTo(0.0, 250); setTimeout(()=>{ bgm.pause(); bgm.volume = vol.valueAsNumber; setPlaying(false); }, 260); } });
-  muteBtn.addEventListener('click', () => { bgm.muted = !bgm.muted; muteBtn.setAttribute('aria-pressed', String(bgm.muted)); muteBtn.textContent = bgm.muted ? '🔇' : '🔈'; });
-  vol.addEventListener('input', () => { if (!bgm.muted) bgm.volume = vol.valueAsNumber; });
+    bgm.play().catch(()=>showToast("Tap ▶ Play to start music"));
+    playPause.disabled = false;
+    muteBtn.disabled = false;
+    vol.disabled = false;
 
-  // Overlay gate button handler
-  audioGate.addEventListener('click', async () => { try { await unlockAudio(); await bgm.play(); setPlaying(true); audioGate.style.display = 'none'; } catch(e){ showToast('Audio blocked by browser. Check silent mode.'); } });
-  // Also try unlocking on first document touch
-  window.addEventListener('touchend', async () => { if (bgm.paused && audioGate.style.display === 'block') { try { await unlockAudio(); await bgm.play(); setPlaying(true); audioGate.style.display = 'none'; } catch {} } }, { once:false, passive:true });
-
-  // ------- Experience bootstrap (AR + music + controls) -------
-  function startExperience(){
-    startAR({ name: cachedName, from: 'Akash', customMsg: 'Wishing you joy, health, and light ✨' });
-    safePlayMusic();
-    enableControls();
-    showToast('Camera ready • Music on');
+    playPause.onclick = async ()=>{
+      if(bgm.paused){ await bgm.play(); playPause.textContent='⏸ Pause'; }
+      else{ bgm.pause(); playPause.textContent='▶ Play'; }
+    };
+    muteBtn.onclick = ()=>{
+      bgm.muted = !bgm.muted;
+      muteBtn.textContent = bgm.muted ? '🔇' : '🔈';
+    };
+    vol.oninput = ()=>{ if(!bgm.muted) bgm.volume = vol.valueAsNumber; };
   }
 
-  // Flip camera quickly (toggle facing)
-  flipCam.addEventListener('click', async () => {
-    currentFacing = currentFacing === 'environment' ? 'user' : 'environment';
-    try { await startCamera(currentFacing); showToast(currentFacing === 'user' ? 'Front camera' : 'Back camera'); }
-    catch(e){ console.error(e); showToast('Flip not available'); }
-  });
-
-  // Unified permission error mapping
-  function handlePermissionError(err){
-    console.error('Camera error:', err);
-    const name = err && (err.name || err.code || err.message) || 'Error';
-    if (name === 'NotAllowedError' || name === 1) {
-      showToast('Camera permission denied. Allow access in site settings.');
-    } else if (name === 'NotFoundError') {
-      showToast('No camera found');
-    } else if (name === 'NotReadableError') {
-      showToast('Camera already in use by another app');
-    } else if (name === 'SecurityError') {
-      showToast('Blocked by browser security policy (use HTTPS)');
-    } else {
-      showToast('Unable to access camera: ' + name);
-    }
-  }
-
-  // ------- AR scene -------
-  function startAR({ name, from, customMsg }) {
-    const DPR = Math.min(2, window.devicePixelRatio || 1);
-    renderer = new THREE.WebGLRenderer({ canvas, alpha: true, antialias: true });
-    renderer.setSize(window.innerWidth, window.innerHeight);
-    renderer.setPixelRatio(DPR);
-
+  function setupAR(name){
+    renderer = new THREE.WebGLRenderer({canvas,alpha:true,antialias:true});
+    renderer.setSize(innerWidth,innerHeight);
+    renderer.setPixelRatio(devicePixelRatio);
     scene = new THREE.Scene();
-    camera3D = new THREE.PerspectiveCamera(50, window.innerWidth / window.innerHeight, 0.1, 100);
-    camera3D.position.z = 1.6;
+    cam3D = new THREE.PerspectiveCamera(50,innerWidth/innerHeight,0.1,100);
+    cam3D.position.z = 1.6;
 
-    const tex = makeWishTexture({ name, from, customMsg });
-    const geo = new THREE.PlaneGeometry(1.9, 0.8);
-    const mat = new THREE.MeshBasicMaterial({ map: tex, transparent: true });
-    plane = new THREE.Mesh(geo, mat); plane.position.z = -1.2; scene.add(plane);
+    const tex = makeWishTexture(name);
+    const geo = new THREE.PlaneGeometry(1.9,0.8);
+    const mat = new THREE.MeshBasicMaterial({map:tex,transparent:true});
+    plane = new THREE.Mesh(geo,mat); plane.position.z = -1.2; scene.add(plane);
 
-    // glowing ring
-    const ringGeo = new THREE.RingGeometry(0.8, 1.15, 64);
-    const ringMat = new THREE.MeshBasicMaterial({ color: 0xffc107, transparent: true, opacity: 0.32, side: THREE.DoubleSide });
-    glow = new THREE.Mesh(ringGeo, ringMat); glow.position.z = -1.3; scene.add(glow);
+    const ringGeo = new THREE.RingGeometry(0.8,1.15,64);
+    const ringMat = new THREE.MeshBasicMaterial({color:0xffc107,transparent:true,opacity:0.32,side:THREE.DoubleSide});
+    glow = new THREE.Mesh(ringGeo,ringMat); glow.position.z=-1.3; scene.add(glow);
 
-    // floating particles
-    const pGeo = new THREE.BufferGeometry(); const pCount = 140; const pPos = new Float32Array(pCount * 3);
-    for (let i = 0; i < pCount; i++) { pPos[i*3] = (Math.random()-0.5)*3; pPos[i*3+1] = Math.random()*2 - 1; pPos[i*3+2] = -Math.random()*2; }
-    pGeo.setAttribute('position', new THREE.BufferAttribute(pPos, 3));
-    const pMat = new THREE.PointsMaterial({ color: 0xffe066, size: 0.02, transparent: true, opacity: 0.85 });
-    particles = new THREE.Points(pGeo, pMat); scene.add(particles);
+    const pGeo=new THREE.BufferGeometry(); const N=140; const pPos=new Float32Array(N*3);
+    for(let i=0;i<N;i++){pPos[i*3]=(Math.random()-0.5)*3;pPos[i*3+1]=Math.random()*2-1;pPos[i*3+2]=-Math.random()*2;}
+    pGeo.setAttribute('position',new THREE.BufferAttribute(pPos,3));
+    particles=new THREE.Points(pGeo,new THREE.PointsMaterial({color:0xffe066,size:0.02,transparent:true,opacity:0.85}));
+    scene.add(particles);
 
-    animate(); window.addEventListener('resize', resize);
+    animate(); window.addEventListener('resize',resize);
   }
 
-  function makeWishTexture({ name, from, customMsg }) {
-    const c = document.createElement('canvas'); c.width = 1024; c.height = 512; const ctx = c.getContext('2d');
-
-    // background gradient
-    const grad = ctx.createLinearGradient(0, 0, 1024, 512); grad.addColorStop(0, '#ffefba'); grad.addColorStop(1, '#ffc371'); ctx.fillStyle = grad; ctx.fillRect(0,0,1024,512);
-
-    // subtle pattern
-    ctx.globalAlpha = 0.07; for (let i=0;i<50;i++){ ctx.fillStyle = i%2? '#fff':'#000'; ctx.beginPath(); ctx.arc(Math.random()*1024, Math.random()*512, Math.random()*3+1, 0, Math.PI*2); ctx.fill(); }
-    ctx.globalAlpha = 1;
-
-    // text
-    ctx.textAlign = 'center'; ctx.fillStyle = '#3a0d0d';
-    ctx.font = 'bold 80px Segoe UI, Poppins, sans-serif'; ctx.fillText('HAPPY DEEPAVALI', 512, 170);
-    ctx.font = '28px Segoe UI, Poppins, sans-serif'; ctx.fillText(customMsg, 512, 220);
-    ctx.font = '36px Segoe UI, Poppins, sans-serif'; ctx.fillText('To: ' + name, 512, 310);
-    ctx.fillText('From: ' + from, 512, 360);
-
-    // diya emoji corner
-    ctx.font = '60px serif'; ctx.fillText('🪔', 80, 90); ctx.fillText('🪔', 944, 90);
-
+  function makeWishTexture(name){
+    const c=document.createElement('canvas'); c.width=1024;c.height=512;
+    const ctx=c.getContext('2d');
+    const grad=ctx.createLinearGradient(0,0,1024,512);
+    grad.addColorStop(0,'#ffefba'); grad.addColorStop(1,'#ffc371');
+    ctx.fillStyle=grad; ctx.fillRect(0,0,1024,512);
+    ctx.textAlign='center'; ctx.fillStyle='#3a0d0d';
+    ctx.font='bold 70px Segoe UI'; ctx.fillText('Happy Deepavali to '+name,512,180);
+    ctx.font='30px Segoe UI';
+    ctx.fillText('May the light of Diwali fill your home with joy and prosperity.',512,250);
+    ctx.fillText('Wishing you and your loved ones a bright and blessed Deepavali.✨',512,310);
     return new THREE.CanvasTexture(c);
   }
 
-  function animate() {
+  function animate(){
     requestAnimationFrame(animate);
-    rotY += 0.01;
-    if (plane){ plane.rotation.y = Math.sin(rotY)*0.5; plane.position.y = Math.sin(Date.now()*0.0015)*0.05; }
-    if (glow) glow.rotation.z += 0.002;
-    if (particles){ const p = particles.geometry.attributes.position; for (let i=0;i<p.count;i++){ let y = p.getY(i); y += 0.002; if (y>1.2) y = -1.2; p.setY(i,y); } p.needsUpdate = true; }
-    renderer.render(scene, camera3D);
+    t+=0.01;
+    if(plane){plane.rotation.y=Math.sin(t)*0.5; plane.position.y=Math.sin(t*1.5)*0.05;}
+    if(glow)glow.rotation.z+=0.002;
+    if(particles){
+      const p=particles.geometry.attributes.position;
+      for(let i=0;i<p.count;i++){let y=p.getY(i)+0.002;if(y>1.2)y=-1.2;p.setY(i,y);}
+      p.needsUpdate=true;
+    }
+    renderer.render(scene,cam3D);
   }
 
-  function resize(){ renderer.setSize(window.innerWidth, window.innerHeight); camera3D.aspect = window.innerWidth/window.innerHeight; camera3D.updateProjectionMatrix(); }
+  function resize(){
+    renderer.setSize(innerWidth,innerHeight);
+    cam3D.aspect=innerWidth/innerHeight;
+    cam3D.updateProjectionMatrix();
+  }
   </script>
 </body>
 </html>
