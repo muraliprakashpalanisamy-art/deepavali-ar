@@ -5,142 +5,87 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Deepavali AR Wish ✨</title>
   <style>
-    html, body {
-      margin: 0;
-      height: 100%;
-      overflow: hidden;
-      background: #000;
-      font-family: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
-    }
+    html, body { margin: 0; height: 100%; overflow: hidden; background: #000; font-family: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif; }
     #app { position: relative; height: 100vh; }
 
-    /* Camera feed */
-    #camera {
-      position: absolute;
-      inset: 0;
-      width: 100%;
-      height: 100%;
-      object-fit: cover;
-      background: #000;
-      transform: scaleX(1);
-    }
+    /* Fullscreen background picture */
+    #bg { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; z-index: 0; }
 
-    /* WebGL overlay */
-    #overlay {
-      position: absolute;
-      inset: 0;
-      width: 100%;
-      height: 100%;
-      pointer-events: none;
-    }
+    /* Camera feed (kept behind image to preserve permission flow if needed) */
+    #camera { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; background: #000; transform: scaleX(1); z-index: -1; }
 
-    /* Welcome screen */
-    #gate {
-      position: absolute;
-      inset: 0;
-      display: grid;
-      place-items: center;
-      z-index: 5;
-      background: radial-gradient(80vmax 80vmax at 50% 40%, #1a0033 0%, #000 70%);
-      color: #fff;
-      text-align: center;
-      padding: 24px;
-    }
-    .panel {
-      width: min(640px, 92vw);
-      padding: 22px;
-      border-radius: 16px;
-      background: rgba(255,255,255,.06);
-      backdrop-filter: blur(8px);
-      box-shadow: 0 10px 40px rgba(0,0,0,.4), inset 0 0 0 1px rgba(255,255,255,.1);
-    }
+    /* WebGL overlay (wording only) */
+    #overlay { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; z-index: 2; }
+
+    /* Gate (Step 1: name only) */
+    #gate { position: absolute; inset: 0; display: grid; place-items: center; z-index: 5; background: radial-gradient(80vmax 80vmax at 50% 40%, rgba(26,0,51,.9) 0%, rgba(0,0,0,.9) 70%); color: #fff; text-align: center; padding: 24px; }
+    .panel { width: min(640px, 92vw); padding: 22px; border-radius: 16px; background: rgba(255,255,255,.06); backdrop-filter: blur(8px); box-shadow: 0 10px 40px rgba(0,0,0,.4), inset 0 0 0 1px rgba(255,255,255,.1); }
     .panel h2 { margin: 0 0 8px; font-size: clamp(22px, 4vw, 32px); }
     .panel p { margin: 0 0 14px; opacity: .9; }
-    input {
-      width: 100%;
-      padding: 12px 14px;
-      border-radius: 12px;
-      border: 0;
-      font-size: 1rem;
-      outline: none;
-      background: rgba(255,255,255,.92);
-      color: #1b1b1b;
-    }
-    button.primary {
-      width: 100%;
-      padding: 13px 18px;
-      border: 0;
-      border-radius: 12px;
-      cursor: pointer;
-      font-weight: 700;
-      background: linear-gradient(90deg,#ffb703,#fb5607);
-      color: #2b0c05;
-      box-shadow: 0 8px 22px rgba(251,86,7,.35);
-    }
+    input { width: 100%; padding: 12px 14px; border-radius: 12px; border: 0; font-size: 1rem; outline: none; background: rgba(255,255,255,.92); color: #1b1b1b; }
+    button.primary { width: 100%; padding: 13px 18px; border: 0; border-radius: 12px; cursor: pointer; font-weight: 700; background: linear-gradient(90deg,#ffb703,#fb5607); color: #2b0c05; box-shadow: 0 8px 22px rgba(251,86,7,.35); }
     .hint { font-size: 12px; opacity: .85; margin-top: 8px; }
 
+    /* Permission helper */
+    #perm { position: absolute; inset: 0; display: none; place-items: center; z-index: 6; background: linear-gradient(180deg, rgba(0,0,0,.6), rgba(0,0,0,.9)); color: #fff; padding: 24px; }
+    .perm-grid { display: grid; gap: 10px; grid-template-columns: 1fr; }
+    @media (min-width: 580px){ .perm-grid { grid-template-columns: 1fr 1fr; } }
+    .chip { display:inline-flex; align-items:center; gap:8px; padding:8px 12px; border-radius:999px; background: rgba(255,255,255,.1); border: 1px solid rgba(255,255,255,.15); }
+
     /* Controls */
-    .controls {
-      position: absolute;
-      right: 12px;
-      bottom: 12px;
-      z-index: 7;
-      display: flex;
-      gap: 8px;
-      align-items: center;
-    }
-    .ctrl {
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-      padding: 10px 12px;
-      border-radius: 999px;
-      border: 0;
-      cursor: pointer;
-      font-weight: 600;
-      background: rgba(255,255,255,.1);
-      color: #fff;
-      backdrop-filter: blur(8px);
-      box-shadow: 0 4px 18px rgba(0,0,0,.35), inset 0 0 0 1px rgba(255,255,255,.15);
-    }
+    .controls { position: absolute; right: 12px; bottom: 12px; z-index: 7; display: flex; gap: 8px; align-items: center; }
+    .ctrl { display: inline-flex; align-items: center; gap: 6px; padding: 10px 12px; border-radius: 999px; border: 0; cursor: pointer; font-weight: 600; background: rgba(255,255,255,.1); color: #fff; backdrop-filter: blur(8px); box-shadow: 0 4px 18px rgba(0,0,0,.35), inset 0 0 0 1px rgba(255,255,255,.15); }
     .ctrl[disabled] { opacity: .5; cursor: not-allowed; }
+    input[type="range"]{ -webkit-appearance: none; width: 120px; height: 6px; border-radius: 6px; background: rgba(255,255,255,.25); outline: none; }
+    input[type="range"]::-webkit-slider-thumb{ -webkit-appearance: none; width: 16px; height: 16px; border-radius: 50%; background: #ffd166; box-shadow: 0 0 0 2px rgba(0,0,0,.35); }
 
     /* Toast */
-    .toast {
-      position: absolute;
-      left: 50%;
-      transform: translateX(-50%);
-      bottom: 78px;
-      background: rgba(0,0,0,.7);
-      color:#fff;
-      padding: 8px 12px;
-      border-radius: 10px;
-      font-size: 13px;
-      opacity: 0;
-      transition: opacity .25s ease;
-      z-index: 8;
-    }
+    .toast { position: absolute; left: 50%; transform: translateX(-50%); bottom: 78px; background: rgba(0,0,0,.7); color:#fff; padding: 8px 12px; border-radius: 10px; font-size: 13px; opacity: 0; transition: opacity .25s ease; z-index: 8; }
     .toast.show { opacity: 1; }
   </style>
 </head>
 <body>
   <div id="app">
+    <!-- Fullscreen background picture -->
+    <img id="bg" src="diya_bg.jfif" alt="Deepavali background" />
+
+    <!-- (kept) camera element, behind image -->
     <video id="camera" autoplay playsinline muted></video>
+
+    <!-- Wording-only WebGL overlay -->
     <canvas id="overlay"></canvas>
 
-    <!-- Name entry -->
+    <!-- Step 1: Name only -->
     <div id="gate">
-      <div class="panel">
-        <h2>🪔 Happy Deepavali 🪔</h2>
-        <p>Enter your name and tap Start to see your AR greeting.</p>
+      <div class="panel" role="dialog" aria-labelledby="title">
+        <h2 id="title">🪔 Happy Deepavali 🪔</h2>
+        <p>Enter your name and tap Start. Next, we'll ask for <b>camera</b> and <b>location</b> permissions.</p>
         <input id="userName" placeholder="Your name (e.g., Priya)" />
-        <button id="start" class="primary">Start ✨</button>
-        <div class="hint">Ensure you allow camera & location for full experience.</div>
+        <button id="start" class="primary" style="margin-top:10px">Start ✨</button>
+        <div class="hint">Tip: Use HTTPS (or localhost) so the browser allows camera & location.</div>
       </div>
     </div>
 
-    <!-- Floating controls -->
-    <div class="controls">
+    <!-- Step 2: Permission request helper -->
+    <div id="perm">
+      <div class="panel" role="dialog" aria-labelledby="permTitle">
+        <h2 id="permTitle">Allow permissions</h2>
+        <div class="perm-grid">
+          <div>
+            <div class="chip">📷 Camera <small>(optional now)</small></div>
+            <div class="chip" style="margin-top:6px">📍 Location <small>(optional)</small></div>
+          </div>
+          <div>
+            <button id="allowAll" class="primary">Allow Camera & Location</button>
+            <button id="allowCamera" class="primary" style="margin-top:8px; background:linear-gradient(90deg,#a8dadc,#457b9d); color:#0b0b0b">Allow Camera Only</button>
+          </div>
+        </div>
+        <p class="hint">If you denied before: Site settings → Allow Camera/Location → Reload.</p>
+      </div>
+    </div>
+
+    <!-- Music & controls -->
+    <div class="controls" aria-live="polite">
       <button id="playPause" class="ctrl" aria-pressed="false" disabled>▶ Play</button>
       <button id="mute" class="ctrl" aria-pressed="false" disabled>🔈</button>
       <input id="volume" type="range" min="0" max="1" step="0.01" value="0.5" aria-label="Volume" disabled />
@@ -148,164 +93,172 @@
 
     <div id="toast" class="toast" role="status"></div>
 
-    <!-- 🎵 Plays your uploaded Deepavali song -->
-    <audio id="bgm" loop preload="auto">
-      <source id="bgmSource" src="Mangalam Oli Veesum Deepavali__Video Song__Vdj Yuva__Deepavali Special.mp3" type="audio/mpeg">
+    <audio id="bgm" loop preload="auto" crossorigin="anonymous">
+      <source id="bgmSource" src="https://cdn.pixabay.com/audio/2023/10/22/audio_ee4f78ef3f.mp3" type="audio/mpeg">
     </audio>
+
+    <!-- Explicit audio unlock overlay (shown if autoplay is blocked) -->
+    <button id="audioGate" style="display:none;position:absolute;inset:0;margin:auto; height:56px; max-width:320px; padding:12px 18px; border:0; border-radius:999px; z-index:9; background:linear-gradient(90deg,#ffd166,#e76f51); color:#2b0c05; font-weight:800; box-shadow:0 10px 30px rgba(0,0,0,.35);">
+      ▶ Tap to play music
+    </button>
   </div>
 
   <script src="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js"></script>
   <script>
+  // Elements
+  const bgImg = document.getElementById('bg');
   const video = document.getElementById('camera');
-  const startBtn = document.getElementById('start');
   const gate = document.getElementById('gate');
+  const perm = document.getElementById('perm');
+  const startBtn = document.getElementById('start');
+  const allowAll = document.getElementById('allowAll');
+  const allowCamera = document.getElementById('allowCamera');
+  const canvas = document.getElementById('overlay');
   const bgm = document.getElementById('bgm');
   const playPause = document.getElementById('playPause');
   const muteBtn = document.getElementById('mute');
   const vol = document.getElementById('volume');
   const toast = document.getElementById('toast');
-  const canvas = document.getElementById('overlay');
-  let renderer, scene, cam3D, plane, particles, t = 0;
+  const nameInput = document.getElementById('userName');
+  const audioGate = document.getElementById('audioGate');
 
-  function showToast(text, ms=1800){
-    toast.textContent=text;
-    toast.classList.add('show');
-    setTimeout(()=>toast.classList.remove('show'),ms);
-  }
+  // State
+  let renderer, scene, camera3D, textPlane, particles; let rotY = 0;
+  let currentStream = null; let currentFacing = 'environment';
+  let cachedName = 'Friend';
 
-  startBtn.onclick = async () => {
-    const name = document.getElementById('userName').value.trim() || "Friend";
-    gate.style.display = 'none';
-    await startCamera();
-    requestLocation();
-    setupAR(name);
-    setupMusic();
+  // Helpers
+  function showToast(text, ms=1800){ toast.textContent = text; toast.classList.add('show'); setTimeout(()=>toast.classList.remove('show'), ms); }
+  function isSecure(){ return location.protocol === 'https:' || location.hostname === 'localhost'; }
+
+  // Flow
+  startBtn.onclick = () => {
+    cachedName = (nameInput.value || 'Friend').trim();
+    if (!isSecure()) { showToast('Open over HTTPS or localhost to use camera/location'); return; }
+    gate.style.display = 'none'; perm.style.display = 'grid';
   };
 
-  async function startCamera(){
-    const stream = await navigator.mediaDevices.getUserMedia({video:{facingMode:'environment'}});
-    video.srcObject = stream;
-    video.style.transform = 'scaleX(1)'; // no mirror
+  allowAll.onclick = async () => { await requestPermissions({ camera:true, location:true }); };
+  allowCamera.onclick = async () => { await requestPermissions({ camera:true, location:false }); };
+
+  async function requestPermissions({ camera, location }){
+    try {
+      if (camera) await startCamera(currentFacing);
+      if (location) requestLocation();
+      perm.style.display = 'none';
+      startExperience();
+    } catch (e) {
+      handlePermissionError(e);
+    }
   }
 
-  function requestLocation(){
-    if(!navigator.geolocation)return;
+  async function startCamera(facing) {
+    if (!('mediaDevices' in navigator)) return; // camera is optional now
+    if (currentStream) { currentStream.getTracks().forEach(t => t.stop()); }
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: facing } });
+      currentStream = stream; video.srcObject = stream;
+      video.style.transform = (facing === 'user') ? 'scaleX(-1)' : 'scaleX(1)';
+    } catch (err) { throw err; }
+  }
+
+  function requestLocation() {
+    if (!('geolocation' in navigator)) { console.log('Geolocation not supported'); return; }
     navigator.geolocation.getCurrentPosition(
-      pos=>console.log('Location:',pos.coords.latitude,pos.coords.longitude),
-      err=>console.warn('Location denied:',err.message)
+      (pos) => { console.log('Location:', pos.coords.latitude, pos.coords.longitude); },
+      (err) => { console.log('Location error:', err.message); if (err.code === 1) showToast('Location denied'); },
+      { enableHighAccuracy: false, maximumAge: 30_000, timeout: 7_000 }
     );
   }
 
-  function setupMusic(){
+  // Music (with unlock)
+  let audioCtx, mediaElSource;
+  async function unlockAudio(){
+    try { const Ctx = window.AudioContext || window.webkitAudioContext; if (!Ctx) return; if (!audioCtx) audioCtx = new Ctx(); if (audioCtx.state === 'suspended') await audioCtx.resume(); if (!mediaElSource) { mediaElSource = audioCtx.createMediaElementSource(bgm); mediaElSource.connect(audioCtx.destination); } } catch(e){ console.warn('Audio unlock failed', e); }
+  }
+
+  async function safePlayMusic() {
     bgm.volume = vol.valueAsNumber;
-    bgm.play().catch(()=>showToast("Tap ▶ Play to start music"));
-    playPause.disabled = false;
-    muteBtn.disabled = false;
-    vol.disabled = false;
+    try { await unlockAudio(); await bgm.play(); setPlaying(true); audioGate.style.display = 'none'; enableControls(); }
+    catch (e) { setPlaying(false); enableControls(); audioGate.style.display = 'block'; }
+  }
+  function setPlaying(is){ playPause.setAttribute('aria-pressed', String(is)); playPause.textContent = is ? '⏸ Pause' : '▶ Play'; }
+  function enableControls(){ playPause.disabled = false; muteBtn.disabled = false; vol.disabled = false; }
+  playPause.addEventListener('click', async () => { if (bgm.paused) { try { await unlockAudio(); await bgm.play(); setPlaying(true); audioGate.style.display = 'none'; } catch(e){ showToast('Tap again to allow audio'); } } else { bgm.pause(); setPlaying(false); } });
+  muteBtn.addEventListener('click', () => { bgm.muted = !bgm.muted; muteBtn.setAttribute('aria-pressed', String(bgm.muted)); muteBtn.textContent = bgm.muted ? '🔇' : '🔈'; });
+  vol.addEventListener('input', () => { if (!bgm.muted) bgm.volume = vol.valueAsNumber; });
+  audioGate.addEventListener('click', async () => { try { await unlockAudio(); await bgm.play(); setPlaying(true); audioGate.style.display = 'none'; } catch(e){ showToast('Audio blocked by browser. Check silent mode.'); } });
 
-    playPause.onclick = async ()=>{
-      if(bgm.paused){ await bgm.play(); playPause.textContent='⏸ Pause'; }
-      else{ bgm.pause(); playPause.textContent='▶ Play'; }
-    };
-    muteBtn.onclick = ()=>{
-      bgm.muted = !bgm.muted;
-      muteBtn.textContent = bgm.muted ? '🔇' : '🔈';
-    };
-    vol.oninput = ()=>{ if(!bgm.muted) bgm.volume = vol.valueAsNumber; };
+  function startExperience(){
+    startAR({ name: cachedName });
+    safePlayMusic();
+    showToast('Enjoy your greeting ✨');
   }
 
-  function setupAR(name){
-    renderer = new THREE.WebGLRenderer({canvas,alpha:true,antialias:true});
-    renderer.setSize(innerWidth,innerHeight);
-    renderer.setPixelRatio(devicePixelRatio);
+  // AR (wording only)
+  function startAR({ name }) {
+    const DPR = Math.min(2, window.devicePixelRatio || 1);
+    renderer = new THREE.WebGLRenderer({ canvas, alpha: true, antialias: true });
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.setPixelRatio(DPR);
+
     scene = new THREE.Scene();
-    cam3D = new THREE.PerspectiveCamera(50,innerWidth/innerHeight,0.1,100);
-    cam3D.position.z = 1.6;
+    camera3D = new THREE.PerspectiveCamera(50, window.innerWidth / window.innerHeight, 0.1, 100);
+    camera3D.position.z = 1.6;
 
-    const tex = makeWishTexture(name);
-    const geo = new THREE.PlaneGeometry(1.9,0.8);
-    const mat = new THREE.MeshBasicMaterial({map:tex,transparent:true});
-    plane = new THREE.Mesh(geo,mat);
-    plane.position.z = -1.2;
-    scene.add(plane);
+    // Build transparent text texture (no yellow background)
+    const tex = makeTextTexture(name);
+    const planeW = 2.6; // wider for readability
+    const planeH = planeW * (tex.image.height / tex.image.width);
+    const geo = new THREE.PlaneGeometry(planeW, planeH);
+    const mat = new THREE.MeshBasicMaterial({ map: tex, transparent: true });
+    textPlane = new THREE.Mesh(geo, mat);
+    textPlane.position.z = -1.2;
+    scene.add(textPlane);
 
-    // Floating particles
-    const pGeo = new THREE.BufferGeometry();
-    const N = 140;
-    const pPos = new Float32Array(N*3);
-    for(let i=0;i<N;i++){
-      pPos[i*3]=(Math.random()-0.5)*3;
-      pPos[i*3+1]=Math.random()*2-1;
-      pPos[i*3+2]=-Math.random()*2;
-    }
-    pGeo.setAttribute('position',new THREE.BufferAttribute(pPos,3));
-    particles = new THREE.Points(pGeo,new THREE.PointsMaterial({color:0xffe066,size:0.02,transparent:true,opacity:0.85}));
-    scene.add(particles);
+    // Subtle floating sparkles (kept minimal)
+    const pGeo = new THREE.BufferGeometry(); const pCount = 120; const pPos = new Float32Array(pCount * 3);
+    for (let i = 0; i < pCount; i++) { pPos[i*3] = (Math.random()-0.5)*3; pPos[i*3+1] = Math.random()*2 - 1; pPos[i*3+2] = -Math.random()*2; }
+    pGeo.setAttribute('position', new THREE.BufferAttribute(pPos, 3));
+    const pMat = new THREE.PointsMaterial({ color: 0xffe066, size: 0.02, transparent: true, opacity: 0.6 });
+    particles = new THREE.Points(pGeo, pMat); scene.add(particles);
 
-    animate(); window.addEventListener('resize',resize);
+    animate(); window.addEventListener('resize', resize);
   }
 
-  // ✅ Fixed text visibility and image load order
-  function makeWishTexture(name){
-    const c = document.createElement('canvas');
-    c.width = 1400;
-    c.height = 900;
-    const ctx = c.getContext('2d');
+  function makeTextTexture(name){
+    const c = document.createElement('canvas'); c.width = 2048; c.height = 768; const ctx = c.getContext('2d');
+    // Transparent background, draw only text with stroke+shadow for readability over photo
+    ctx.clearRect(0,0,c.width,c.height);
 
-    // Background gradient
-    const grad = ctx.createLinearGradient(0, 0, 1400, 900);
-    grad.addColorStop(0, '#fffaf2');
-    grad.addColorStop(1, '#ffe7b0');
-    ctx.fillStyle = grad;
-    ctx.fillRect(0, 0, 1400, 900);
-
-    // Draw text first
     ctx.textAlign = 'center';
-    ctx.fillStyle = '#3a0d0d';
-    ctx.font = 'bold 70px Segoe UI';
-    ctx.fillText('Happy Deepavali to ' + name, 700, 200);
-    ctx.font = '32px Segoe UI';
-    ctx.fillText('May the light of Diwali fill your home with joy and prosperity.', 700, 270);
-    ctx.fillText('Wishing you and your loved ones a bright and blessed Deepavali.✨', 700, 320);
+    ctx.fillStyle = '#ffffff';
+    ctx.strokeStyle = 'rgba(0,0,0,0.6)';
+    ctx.lineWidth = 8;
 
-    // Create texture early so text shows
+    ctx.font = 'bold 120px Segoe UI, Poppins, sans-serif';
+    const line1 = 'HAPPY DEEPAVALI';
+    ctx.strokeText(line1, c.width/2, 260);
+    ctx.fillText(line1, c.width/2, 260);
+
+    ctx.font = '44px Segoe UI, Poppins, sans-serif';
+    const line2 = `May the light bring joy and prosperity, ${name}! ✨`;
+    ctx.strokeText(line2, c.width/2, 360);
+    ctx.fillText(line2, c.width/2, 360);
+
     const texture = new THREE.CanvasTexture(c);
-
-    // Load diya image after
-    const img = new Image();
-    img.src = "diya_bg.jfif"; // your uploaded diya file
-    img.onload = () => {
-      ctx.drawImage(img, 400, 400, 600, 450);
-      texture.needsUpdate = true;
-    };
-
     return texture;
   }
 
   function animate(){
     requestAnimationFrame(animate);
-    t+=0.01;
-    if(plane){
-      plane.rotation.y=Math.sin(t)*0.5;
-      plane.position.y=Math.sin(t*1.5)*0.05;
-    }
-    if(particles){
-      const p=particles.geometry.attributes.position;
-      for(let i=0;i<p.count;i++){
-        let y=p.getY(i)+0.002;
-        if(y>1.2)y=-1.2;
-        p.setY(i,y);
-      }
-      p.needsUpdate=true;
-    }
-    renderer.render(scene,cam3D);
+    rotY += 0.01;
+    if (textPlane){ textPlane.rotation.y = Math.sin(rotY)*0.35; textPlane.position.y = Math.sin(Date.now()*0.0015)*0.04; }
+    if (particles){ const p = particles.geometry.attributes.position; for (let i=0;i<p.count;i++){ let y = p.getY(i); y += 0.002; if (y>1.2) y = -1.2; p.setY(i,y); } p.needsUpdate = true; }
+    renderer.render(scene, camera3D);
   }
 
-  function resize(){
-    renderer.setSize(innerWidth,innerHeight);
-    cam3D.aspect=innerWidth/innerHeight;
-    cam3D.updateProjectionMatrix();
-  }
+  function resize(){ renderer.setSize(window.innerWidth, window.innerHeight); camera3D.aspect = window.innerWidth/window.innerHeight; camera3D.updateProjectionMatrix(); }
   </script>
 </body>
 </html>
