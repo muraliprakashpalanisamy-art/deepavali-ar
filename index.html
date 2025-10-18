@@ -49,47 +49,57 @@
   }
 
   function startAR(name) {
-    renderer = new THREE.WebGLRenderer({ canvas, alpha:true });
-    resize();
-    window.addEventListener('resize', resize);
+    renderer = new THREE.WebGLRenderer({ canvas, alpha:true, antialias:true });
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.setPixelRatio(window.devicePixelRatio);
 
     scene = new THREE.Scene();
-    camera3D = new THREE.PerspectiveCamera(50, canvas.clientWidth/canvas.clientHeight, 0.1, 100);
-    camera3D.position.z = 2;
+    camera3D = new THREE.PerspectiveCamera(50, window.innerWidth/window.innerHeight, 0.1, 100);
+    camera3D.position.z = 1.5;
 
     const tex = makeWishTexture(name);
-    const geo = new THREE.PlaneGeometry(1.8, 0.7);
+    const geo = new THREE.PlaneGeometry(1.4, 0.6);
     const mat = new THREE.MeshBasicMaterial({ map: tex, transparent:true });
     plane = new THREE.Mesh(geo, mat);
+    plane.position.z = -1.0; // move slightly in front
     scene.add(plane);
 
+    const light = new THREE.PointLight(0xffffff, 1);
+    light.position.set(2, 2, 2);
+    scene.add(light);
+
     animate();
+    window.addEventListener('resize', resize);
   }
 
   function makeWishTexture(name){
     const c = document.createElement('canvas');
     c.width = 1024; c.height = 512;
     const ctx = c.getContext('2d');
+
+    // gradient background
     const grad = ctx.createLinearGradient(0,0,1024,512);
     grad.addColorStop(0,'#ffefba');
     grad.addColorStop(1,'#ffc371');
     ctx.fillStyle = grad;
     ctx.fillRect(0,0,1024,512);
+
     ctx.textAlign='center';
     ctx.fillStyle='#3a0d0d';
-    ctx.font='bold 64px Segoe UI';
-    ctx.fillText('HAPPY DEEPAVALI',512,200);
-    ctx.font='28px Segoe UI';
-    ctx.fillText('and may your days be filled with joy and light',512,250);
-    ctx.font='32px Segoe UI';
+    ctx.font='bold 68px Segoe UI';
+    ctx.fillText('HAPPY DEEPAVALI',512,170);
+    ctx.font='30px Segoe UI';
+    ctx.fillText('and may your days be filled with joy and light ✨',512,230);
+    ctx.font='36px Segoe UI';
     ctx.fillText('To: ' + name,512,320);
     ctx.fillText('From: Akash',512,370);
+
     return new THREE.CanvasTexture(c);
   }
 
   function animate(){
     requestAnimationFrame(animate);
-    if(plane && rotating){ plane.rotation.y += 0.01; }
+    if(plane){ plane.rotation.y += 0.01; plane.rotation.x = Math.sin(Date.now()*0.001)*0.05; }
     renderer.render(scene,camera3D);
   }
 
