@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Deepavali AR Wish ✨</title>
+  <style>
+    html, body { margin:0; height:100%; background:#000; overflow:hidden; font-family: system-ui, sans-serif; }
+    #app { position:relative; height:100vh; }
+    #camera { position:absolute; inset:0; width:100%; height:100%; object-fit:cover; background:#000; transform: scaleX(-1); }
+    #overlay { position:absolute; inset:0; width:100%; height:100%; pointer-events:none; }
+    #gate { position:absolute; inset:0; display:flex; align-items:center; justify-content:center; background:#0c0014; color:white; z-index:5; flex-direction:column; text-align:center; }
+    input { padding:10px; border-radius:10px; border:none; width:70%; font-size:1rem; margin:10px 0; text-align:center; }
+    button { padding:12px 20px; border:none; border-radius:10px; background:linear-gradient(90deg,#ff8a00,#e52e71); color:#fff; font-weight:600; cursor:pointer; }
+  </style>
+</head>
+<body>
+  <div id="app">
+    <video id="camera" autoplay playsinline muted></video>
+    <canvas id="overlay"></canvas>
+    <div id="gate">
+      <h2>🪔 Happy Deepavali 🪔</h2>
+      <p>Enter your name to receive your personalized wish:</p>
+      <input id="userName" placeholder="Your name here">
+      <button id="start">Let the lights in ✨</button>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js"></script>
+  <script>
+  const video = document.getElementById('camera');
+  const gate = document.getElementById('gate');
+  const startBtn = document.getElementById('start');
+  const canvas = document.getElementById('overlay');
+
+  let renderer, scene, camera3D, plane;
+  let rotating = true;
+
+  startBtn.onclick = async () => {
+    const name = document.getElementById('userName').value.trim() || "Friend";
+    gate.style.display = 'none';
+    await startCamera();
+    startAR(name);
+  };
+
+  async function startCamera() {
+    const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' }});
+    video.srcObject = stream;
+  }
+
+  function startAR(name) {
+    renderer = new THREE.WebGLRenderer({ canvas, alpha:true });
+    resize();
+    window.addEventListener('resize', resize);
+
+    scene = new THREE.Scene();
+    camera3D = new THREE.PerspectiveCamera(50, canvas.clientWidth/canvas.clientHeight, 0.1, 100);
+    camera3D.position.z = 2;
+
+    const tex = makeWishTexture(name);
+    const geo = new THREE.PlaneGeometry(1.8, 0.7);
+    const mat = new THREE.MeshBasicMaterial({ map: tex, transparent:true });
+    plane = new THREE.Mesh(geo, mat);
+    scene.add(plane);
+
+    animate();
+  }
+
+  function makeWishTexture(name){
+    const c = document.createElement('canvas');
+    c.width = 1024; c.height = 512;
+    const ctx = c.getContext('2d');
+    const grad = ctx.createLinearGradient(0,0,1024,512);
+    grad.addColorStop(0,'#ffefba');
+    grad.addColorStop(1,'#ffc371');
+    ctx.fillStyle = grad;
+    ctx.fillRect(0,0,1024,512);
+    ctx.textAlign='center';
+    ctx.fillStyle='#3a0d0d';
+    ctx.font='bold 64px Segoe UI';
+    ctx.fillText('HAPPY DEEPAVALI',512,200);
+    ctx.font='28px Segoe UI';
+    ctx.fillText('and may your days be filled with joy and light',512,250);
+    ctx.font='32px Segoe UI';
+    ctx.fillText('To: ' + name,512,320);
+    ctx.fillText('From: Akash',512,370);
+    return new THREE.CanvasTexture(c);
+  }
+
+  function animate(){
+    requestAnimationFrame(animate);
+    if(plane && rotating){ plane.rotation.y += 0.01; }
+    renderer.render(scene,camera3D);
+  }
+
+  function resize(){
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    camera3D.aspect = window.innerWidth/window.innerHeight;
+    camera3D.updateProjectionMatrix();
+  }
+  </script>
+</body>
+</html>
