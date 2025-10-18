@@ -92,9 +92,14 @@
 
     <div id="toast" class="toast" role="status"></div>
 
-    <audio id="bgm" loop preload="auto">
+    <audio id="bgm" loop preload="auto" crossorigin="anonymous">
       <source id="bgmSource" src="https://cdn.pixabay.com/audio/2023/10/22/audio_ee4f78ef3f.mp3" type="audio/mpeg">
     </audio>
+
+    <!-- Explicit audio unlock overlay (shown if autoplay is blocked) -->
+    <button id="audioGate" style="display:none;position:absolute;inset:0;margin:auto; height:56px; max-width:320px; padding:12px 18px; border:0; border-radius:999px; z-index:9; background:linear-gradient(90deg,#ffd166,#e76f51); color:#2b0c05; font-weight:800; box-shadow:0 10px 30px rgba(0,0,0,.35);">
+      ▶ Tap to play music
+    </button>
   </div>
 
   <script src="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js"></script>
@@ -125,10 +130,16 @@
   // ------- Diagnostics ("test cases") -------
   function diag(label, pass){ console[(pass?'log':'warn')](`${pass?'✅':'❌'} ${label}`); }
   function runDiagnostics(){
-    diag('Secure context (HTTPS/localhost)', (location.protocol === 'https:' || location.hostname === 'localhost'));
-    diag('MediaDevices available', !!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia));
-    diag('Geolocation available', !!navigator.geolocation);
-    diag('THREE loaded', !!window.THREE);
+    const secure = (location.protocol === 'https:' || location.hostname === 'localhost');
+    const media = !!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia);
+    const geo = !!navigator.geolocation;
+    const three = !!window.THREE;
+    const canMP3 = !!document.createElement('audio').canPlayType('audio/mpeg');
+    diag('Secure context (HTTPS/localhost)', secure);
+    diag('MediaDevices available', media);
+    diag('Geolocation available', geo);
+    diag('THREE loaded', three);
+    diag('Audio MP3 support', canMP3);
   }
   runDiagnostics();
 
@@ -179,17 +190,43 @@
   }
 
   // ------- Music -------
+  let audioCtx, mediaElSource;
+  async function unlockAudio(){
+    try {
+      const Ctx = window.AudioContext || window.webkitAudioContext; if (!Ctx) return;
+      if (!audioCtx) { audioCtx = new Ctx(); }
+      if (audioCtx.state === 'suspended') { await audioCtx.resume(); }
+      if (!mediaElSource) { mediaElSource = audioCtx.createMediaElementSource(bgm); mediaElSource.connect(audioCtx.destination); }
+    } catch (e) { console.warn('Audio unlock failed', e); }
+  }
+
+  const audioGate = document.getElementById('audioGate');
+
   async function safePlayMusic() {
     bgm.volume = vol.valueAsNumber;
-    try { await bgm.play(); playPause.disabled = false; muteBtn.disabled = false; vol.disabled = false; setPlaying(true); }
-    catch { playPause.disabled = false; muteBtn.disabled = false; vol.disabled = false; setPlaying(false); }
+    try {
+      await unlockAudio();
+      await bgm.play();
+      playPause.disabled = false; muteBtn.disabled = false; vol.disabled = false; setPlaying(true);
+      audioGate.style.display = 'none';
+    } catch (e) {
+      console.warn('Autoplay blocked:', e && (e.name||e.message));
+      playPause.disabled = false; muteBtn.disabled = false; vol.disabled = false; setPlaying(false);
+      // Show explicit overlay button for iOS/Safari
+      audioGate.style.display = 'block';
+    }
   }
   function setPlaying(is){ playPause.setAttribute('aria-pressed', String(is)); playPause.textContent = is ? '⏸ Pause' : '▶ Play'; if (is) { playPause.appendChild(eq); eq.style.display = 'inline-flex'; } else { eq.style.display = 'none'; } }
   function enableControls(){ playPause.disabled = false; muteBtn.disabled = false; vol.disabled = false; }
   function fadeTo(target, duration=400){ const start = bgm.volume; const delta = target - start; const t0 = performance.now(); function step(t){ const k = Math.min(1, (t - t0) / duration); bgm.volume = Math.max(0, Math.min(1, start + delta * k)); if (k < 1) requestAnimationFrame(step); } requestAnimationFrame(step); }
-  playPause.addEventListener('click', async () => { if (bgm.paused) { try { await bgm.play(); setPlaying(true); } catch(e){ showToast('Tap allowed, but audio blocked. Try again.'); } } else { fadeTo(0.0, 250); setTimeout(()=>{ bgm.pause(); bgm.volume = vol.valueAsNumber; setPlaying(false); }, 260); } });
+  playPause.addEventListener('click', async () => { if (bgm.paused) { try { await unlockAudio(); await bgm.play(); setPlaying(true); audioGate.style.display = 'none'; } catch(e){ showToast('Tap again to allow audio'); } } else { fadeTo(0.0, 250); setTimeout(()=>{ bgm.pause(); bgm.volume = vol.valueAsNumber; setPlaying(false); }, 260); } });
   muteBtn.addEventListener('click', () => { bgm.muted = !bgm.muted; muteBtn.setAttribute('aria-pressed', String(bgm.muted)); muteBtn.textContent = bgm.muted ? '🔇' : '🔈'; });
   vol.addEventListener('input', () => { if (!bgm.muted) bgm.volume = vol.valueAsNumber; });
+
+  // Overlay gate button handler
+  audioGate.addEventListener('click', async () => { try { await unlockAudio(); await bgm.play(); setPlaying(true); audioGate.style.display = 'none'; } catch(e){ showToast('Audio blocked by browser. Check silent mode.'); } });
+  // Also try unlocking on first document touch
+  window.addEventListener('touchend', async () => { if (bgm.paused && audioGate.style.display === 'block') { try { await unlockAudio(); await bgm.play(); setPlaying(true); audioGate.style.display = 'none'; } catch {} } }, { once:false, passive:true });
 
   // ------- Experience bootstrap (AR + music + controls) -------
   function startExperience(){
