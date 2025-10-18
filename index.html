@@ -5,25 +5,48 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Deepavali AR Wish 🪔</title>
   <style>
-    html,body{margin:0;height:100%;overflow:hidden;background:#000;font-family:system-ui,Segoe UI,Arial,sans-serif}
+    html,body{
+      margin:0;height:100%;overflow:hidden;background:#000;
+      font-family:system-ui,Segoe UI,Arial,sans-serif
+    }
     #app{position:relative;height:100vh}
-    #camera{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;transform:scaleX(-1)}
+    #camera{
+      position:absolute;inset:0;
+      width:100%;height:100%;
+      object-fit:cover;
+      /* 🔹 Camera now shows true (not inverted) view */
+      transform:none;
+    }
     #overlay{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}
-    #gate{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;background:radial-gradient(circle at center,#1a0033 0%,#000 90%);color:#fff;z-index:5}
-    input{padding:10px;border-radius:10px;border:none;width:70%;font-size:1rem;margin:10px 0;text-align:center}
-    button{padding:12px 20px;border:none;border-radius:10px;background:linear-gradient(90deg,#ff8a00,#e52e71);color:#fff;font-weight:600;cursor:pointer}
+    #gate{
+      position:absolute;inset:0;display:flex;flex-direction:column;
+      align-items:center;justify-content:center;text-align:center;
+      background:radial-gradient(circle at center,#1a0033 0%,#000 90%);
+      color:#fff;z-index:5
+    }
+    input{
+      padding:10px;border-radius:10px;border:none;
+      width:70%;font-size:1rem;margin:10px 0;text-align:center
+    }
+    button{
+      padding:12px 20px;border:none;border-radius:10px;
+      background:linear-gradient(90deg,#ff8a00,#e52e71);
+      color:#fff;font-weight:600;cursor:pointer
+    }
   </style>
 </head>
 <body>
   <div id="app">
     <video id="camera" autoplay playsinline muted></video>
     <canvas id="overlay"></canvas>
+
     <div id="gate">
       <h2>🪔 Happy Deepavali 🪔</h2>
       <p>Enter your name to receive your personalized wish:</p>
       <input id="userName" placeholder="Your name here" />
       <button id="start">Let the lights in ✨</button>
     </div>
+
     <audio id="bgm" loop preload="auto">
       <source src="https://cdn.pixabay.com/audio/2023/10/22/audio_ee4f78ef3f.mp3" type="audio/mpeg">
     </audio>
@@ -36,7 +59,9 @@
   const startBtn=document.getElementById('start');
   const canvas=document.getElementById('overlay');
   const bgm=document.getElementById('bgm');
-  let renderer,scene,camera3D,lamp,flame,plane,particles; let t=0;
+
+  let renderer,scene,camera3D,lamp,flame,plane,particles;
+  let t=0;
 
   startBtn.onclick=async()=>{
     const name=document.getElementById('userName').value.trim()||"Friend";
@@ -48,8 +73,9 @@
   };
 
   async function startCamera(){
-    const stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:'environment'}});
+    const stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:{ideal:'environment'}}});
     video.srcObject=stream;
+    video.onloadedmetadata=()=>{ video.style.transform='none'; }; // ✅ correct orientation
   }
 
   function playMusic(){
@@ -75,7 +101,7 @@
     camera3D=new THREE.PerspectiveCamera(50,innerWidth/innerHeight,0.1,100);
     camera3D.position.z=2;
 
-    // lotus base + diya drawn on canvas
+    // 🪷 Lotus base + diya
     const texLamp=drawLotusLamp();
     const gLamp=new THREE.PlaneGeometry(1.6,1.6);
     const mLamp=new THREE.MeshBasicMaterial({map:texLamp,transparent:true});
@@ -83,7 +109,7 @@
     lamp.position.set(0,-0.5,-1.2);
     scene.add(lamp);
 
-    // flame overlay for flicker
+    // 🔥 Flame
     const texFlame=drawFlame();
     const gFlame=new THREE.PlaneGeometry(0.3,0.4);
     const mFlame=new THREE.MeshBasicMaterial({map:texFlame,transparent:true,opacity:0.9});
@@ -91,19 +117,28 @@
     flame.position.set(0,-0.2,-1.1);
     scene.add(flame);
 
-    // text panel
+    // 💬 Text
     const texText=makeTextTexture(name);
-    const gText=new THREE.PlaneGeometry(1.8,0.8);
+    const gText=new THREE.PlaneGeometry(1.8,0.9);
     const mText=new THREE.MeshBasicMaterial({map:texText,transparent:true});
     plane=new THREE.Mesh(gText,mText);
     plane.position.set(0,0.55,-1.1);
     scene.add(plane);
 
-    // sparkles
-    const pGeo=new THREE.BufferGeometry(); const N=150; const p=new Float32Array(N*3);
-    for(let i=0;i<N;i++){p[i*3]=(Math.random()-0.5)*3;p[i*3+1]=Math.random()*2-1;p[i*3+2]=-Math.random()*2;}
+    // ✨ Sparkles
+    const pGeo=new THREE.BufferGeometry();
+    const N=150;
+    const p=new Float32Array(N*3);
+    for(let i=0;i<N;i++){
+      p[i*3]=(Math.random()-0.5)*3;
+      p[i*3+1]=Math.random()*2-1;
+      p[i*3+2]=-Math.random()*2;
+    }
     pGeo.setAttribute('position',new THREE.BufferAttribute(p,3));
-    particles=new THREE.Points(pGeo,new THREE.PointsMaterial({color:0xffe066,size:0.02,transparent:true,opacity:0.9}));
+    particles=new THREE.Points(
+      pGeo,
+      new THREE.PointsMaterial({color:0xffe066,size:0.02,transparent:true,opacity:0.9})
+    );
     scene.add(particles);
 
     animate();
@@ -113,11 +148,16 @@
   function drawLotusLamp(){
     const c=document.createElement('canvas'); c.width=800;c.height=800;
     const ctx=c.getContext('2d');
+    // Lotus petals
     const grad=ctx.createRadialGradient(400,420,60,400,420,380);
     grad.addColorStop(0,'#ffb3c1'); grad.addColorStop(1,'#7a0c3a');
-    ctx.fillStyle=grad; ctx.beginPath(); ctx.ellipse(400,470,260,120,0,0,Math.PI*2); ctx.fill();
-    ctx.fillStyle='#8a1f1f'; ctx.beginPath(); ctx.ellipse(400,430,150,70,0,0,Math.PI*2); ctx.fill();
-    ctx.fillStyle='#b43b3b'; ctx.beginPath(); ctx.ellipse(400,420,145,55,0,0,Math.PI*2); ctx.fill();
+    ctx.fillStyle=grad;
+    ctx.beginPath(); ctx.ellipse(400,470,260,120,0,0,Math.PI*2); ctx.fill();
+    // Diya bowl
+    ctx.fillStyle='#8a1f1f';
+    ctx.beginPath(); ctx.ellipse(400,430,150,70,0,0,Math.PI*2); ctx.fill();
+    ctx.fillStyle='#b43b3b';
+    ctx.beginPath(); ctx.ellipse(400,420,145,55,0,0,Math.PI*2); ctx.fill();
     return new THREE.CanvasTexture(c);
   }
 
@@ -125,19 +165,26 @@
     const c=document.createElement('canvas'); c.width=256;c.height=256;
     const ctx=c.getContext('2d');
     const flame=ctx.createRadialGradient(128,100,10,128,100,70);
-    flame.addColorStop(0,'#fff8c1'); flame.addColorStop(1,'rgba(255,120,0,0)');
-    ctx.fillStyle=flame; ctx.beginPath(); ctx.moveTo(128,30); ctx.quadraticCurveTo(168,100,128,160); ctx.quadraticCurveTo(88,100,128,30); ctx.fill();
+    flame.addColorStop(0,'#fff8c1');
+    flame.addColorStop(1,'rgba(255,120,0,0)');
+    ctx.fillStyle=flame;
+    ctx.beginPath();
+    ctx.moveTo(128,30);
+    ctx.quadraticCurveTo(168,100,128,160);
+    ctx.quadraticCurveTo(88,100,128,30);
+    ctx.fill();
     return new THREE.CanvasTexture(c);
   }
 
   function makeTextTexture(name){
     const c=document.createElement('canvas'); c.width=1400;c.height=650;
     const ctx=c.getContext('2d');
-    ctx.fillStyle='rgba(255,255,255,0)';
     ctx.clearRect(0,0,c.width,c.height);
     ctx.textAlign='center';
     ctx.fillStyle='#3a0d0d';
-    ctx.shadowColor='rgba(0,0,0,.3)'; ctx.shadowBlur=10;
+    ctx.shadowColor='rgba(0,0,0,.3)';
+    ctx.shadowBlur=10;
+
     ctx.font='bold 66px Segoe UI';
     ctx.fillText('Happy Deepavali to '+name, c.width/2, 180);
     ctx.font='32px Segoe UI';
@@ -150,11 +197,18 @@
     requestAnimationFrame(animate);
     t+=0.01;
     if(lamp)lamp.position.y=-0.5+Math.sin(t)*0.04;
-    if(flame){flame.scale.y=1+Math.sin(t*20)*0.1;flame.material.opacity=0.8+Math.sin(t*15)*0.2;}
+    if(flame){
+      flame.scale.y=1+Math.sin(t*20)*0.1;
+      flame.material.opacity=0.8+Math.sin(t*15)*0.2;
+    }
     if(plane){plane.rotation.y=Math.sin(t)*0.3;}
     if(particles){
       const a=particles.geometry.attributes.position;
-      for(let i=0;i<a.count;i++){let y=a.getY(i)+0.002;if(y>1.2)y=-1.2;a.setY(i,y);}
+      for(let i=0;i<a.count;i++){
+        let y=a.getY(i)+0.002;
+        if(y>1.2)y=-1.2;
+        a.setY(i,y);
+      }
       a.needsUpdate=true;
     }
     renderer.render(scene,camera3D);
